@@ -41,7 +41,7 @@ const own=c=>S.prov.map((p,i)=>p.o==c?i:-1).filter(i=>i>=0),tot=(c,k)=>own(c).re
 const atWar=(a,b)=>S.wars.some(w=>(w[0]==a&&w[1]==b)||(w[0]==b&&w[1]==a)),en=c=>S.wars.filter(w=>w.includes(c)).map(w=>w[0]==c?w[1]:w[0]);
 const dt=()=>["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"][S.m-1]+" "+S.y,log=(t,w)=>{S.log.unshift([dt()+": "+t,w]);S.log.length=50};
 const bloc=c=>S.bloc[c]||null,ally=(a,b)=>bloc(a)&&bloc(a)==bloc(b);
-function init(pl,year=1936){armyDrawer=true;planTool="";armySlot=0;visibleCityLabels=[];visibleCityMarks=[];hoverCity=null;hv=-1;$("#foreign-country").hidden=true;hoveredDistrict=null;researchBranch=0;researchSelection="t1";clearInterval(tmr);spd=0;W=null;mode="pol";effects.length=0;$("#md").hidden=true;S={partners:new Set(),cityGarrisons:new Map(),cityOrders:new Map(),cityTarget:null,rockets:0,rocketLine:false,upgraded:{},pl,df:1,hist:1,bub:[],dipC:null,startYear:year,y:year,m:1,T:12,pp:20,stab:60,ws:20,man:0,law:1,eq:{r:150,a:30,t:20,p:10},mix:{r:50,a:15,t:25,p:10},foc:null,fl:0,done:{},tech:{},rs:[null,null],rp:{},slots:2,q:[],sel:null,pend:null,tr:{st:0,oil:0},tpl:{i:9,a:0,t:0},just:{},pact:{},prov:[],div:[],org:[],wars:[],bloc:{},ai:{},log:[],over:null,evd:{}};
+function init(pl,year=1936){directOrigin=null;directHint="";armyDrawer=true;planTool="";armySlot=0;visibleCityLabels=[];visibleCityMarks=[];hoverCity=null;hv=-1;$("#foreign-country").hidden=true;hoveredDistrict=null;researchBranch=0;researchSelection="t1";clearInterval(tmr);spd=0;W=null;mode="pol";effects.length=0;$("#md").hidden=true;S={partners:new Set(),cityGarrisons:new Map(),cityOrders:new Map(),cityTarget:null,rockets:0,rocketLine:false,upgraded:{},pl,df:1,hist:1,bub:[],dipC:null,startYear:year,y:year,m:1,T:12,pp:20,stab:60,ws:20,man:0,law:1,eq:{r:150,a:30,t:20,p:10},mix:{r:50,a:15,t:25,p:10},foc:null,fl:0,done:{},tech:{},rs:[null,null],rp:{},slots:2,q:[],sel:null,pend:null,tr:{st:0,oil:0},tpl:{i:9,a:0,t:0},just:{},pact:{},prov:[],div:[],org:[],wars:[],bloc:{},ai:{},log:[],over:null,evd:{}};
 Object.keys(C).forEach(c=>{if(C[c].bl)S.bloc[c]=C[c].bl;S.ai[c]=0});
 P.forEach((p,i)=>{const c=C[p.o0],n=P.filter(x=>x.o0==p.o0).length,k=i==cap(p.o0)?1:0;S.prov.push({o:p.o0,civ:Math.round(c.civ/n)+k,mil:Math.round(c.mil/n),dock:0,airfield:0,st:Math.round(c.st/n),oil:Math.round(c.oil/n),fort:0,inf:2+Math.floor(R()*3)});S.div.push(Math.max(1,Math.round(c.dv/n)));S.org.push(100)});
 S.man=own(pl).length*60;S.sel=null;log("Партия началась: "+C[pl].n);render()}
@@ -58,7 +58,7 @@ if(win&&sv>0){const p=S.prov[t];if(cA!=S.pl&&cD!=S.pl)log(C[cA].n+" захват
 if(cA==S.pl||cD==S.pl){log(`Бой: ${P[t].n} — ${C[cA].n} ${n} vs ${C[cD].n} ${m}: ${win?"прорыв":"отбито"} (потери ${la}/${ld})`,1);S.ws=Math.max(0,S.ws-(cA==S.pl?la:ld)*.6)}return win}
 function declare(a,b){S.wars.push([a,b]);S.T=Math.min(100,S.T+(a==S.pl?10:6));log(C[a].n+" объявила войну: "+C[b].n,1);Object.keys(C).forEach(x=>{if(!alive(x)||x==a||x==b||!bloc(x))return;if(bloc(x)==bloc(b)&&bloc(x)!=bloc(a)&&!atWar(x,a)){S.wars.push([x,a]);log(C[x].n+" вступает на стороне "+C[b].n,1)}else if(bloc(x)==bloc(a)&&bloc(x)!=bloc(b)&&!atWar(x,b)){S.wars.push([x,b]);log(C[x].n+" вступает на стороне "+C[a].n,1)}})}
 function aiTurn(){Object.keys(C).forEach(c=>{if(c==S.pl||!alive(c))return;S.ai[c]+=tot(c,"mil")*.035*S.df;while(S.ai[c]>=1){S.ai[c]--;const o=own(c),b=o.filter(i=>P[i].nb.some(j=>S.prov[j].o!=c));S.div[(b.length?b:o)[Math.floor(R()*(b.length||o.length))]]++}
-const es=en(c);if(es.length)own(c).forEach(f=>{const n=S.div[f];if(n<2)return;const ts=P[f].nb.filter(j=>es.includes(S.prov[j].o)).sort((a,b)=>S.div[a]-S.div[b]);if(!ts.length)return;const t=ts[0],k=Math.ceil(n*.75);if(!S.div[t]||27*k>S.div[t]*55)battle(f,t,k)})});
+if(atWar(c,S.pl))enemyCityMove(c);const es=en(c);if(es.length)own(c).forEach(f=>{const n=S.div[f];if(n<2)return;const ts=P[f].nb.filter(j=>es.includes(S.prov[j].o)&&!(S.prov[j].o===S.pl&&cityLayers[j])).sort((a,b)=>S.div[a]-S.div[b]);if(!ts.length)return;const t=ts[0],k=Math.ceil(n*.75);if(!S.div[t]||27*k>S.div[t]*55)battle(f,t,k)})});
 if(S.hist&&S.y==1939&&S.m==9)[["GER","POL"],["SOV","POL"]].forEach(([a,b])=>{if(S.pl!=a&&S.pl!=b&&alive(a)&&alive(b)&&!atWar(a,b))declare(a,b)});
 Object.keys(C).forEach(c=>{if(c==S.pl||!alive(c)||en(c).length>1||S.T<15||S.y<=S.startYear)return;if(R()>C[c].ag*S.T/100*.1*S.df*(S.hist?1:2.5))return;const ts=Object.keys(C).filter(x=>x!=c&&alive(x)&&!atWar(c,x)&&!ally(c,x)&&!(S.pact[c+x]>0||S.pact[x+c]>0)&&own(c).some(i=>P[i].nb.some(j=>S.prov[j].o==x)));if(ts.length)declare(c,ts[Math.floor(R()*ts.length)])})}
 const EVT=[[1936,3,"Ремилитаризация Рейнской области","Германские войска входят в демилитаризованную зону. Франция и Британия решают, как ответить.",[["Протест без последствий",()=>{S.T+=4;S.stab+=2}],["Мобилизация и ультиматум",()=>{S.T+=9;S.ws+=6;S.stab-=2}]]],
@@ -90,7 +90,7 @@ const poly=pt=>{x.beginPath();pt.forEach((q,j)=>j?x.lineTo(q[0],q[1]):x.moveTo(q
 const edges=(f,st,lw,dash)=>{if(globalCampaign)return;x.beginPath();EDL.forEach(e=>{if(f(e)){x.moveTo(e.A[0],e.A[1]);x.lineTo(e.B[0],e.B[1])}});x.strokeStyle=st;x.lineWidth=lw;x.setLineDash(dash||[]);x.stroke();x.setLineDash([])};
 function bub(px,py,col,t){x.beginPath();x.arc(px,py,12,0,7);x.fillStyle=col;x.fill();x.strokeStyle="#000";x.lineWidth=1.5;x.stroke();x.fillStyle="#000";x.font="bold 11px sans-serif";x.textAlign="center";x.textBaseline="middle";x.fillText(t,px,py+1)}
 function arr(a,b,col,pc,w){x.save();if(worldShapes.length)x.clip(landOutline);const A=P[a].c,B=P[b].c,dx=B[0]-A[0],dy=B[1]-A[1],L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L;x.strokeStyle=col;x.fillStyle=col;x.lineWidth=w;x.lineCap="round";x.beginPath();x.moveTo(A[0],A[1]);x.lineTo(B[0]-ux*10,B[1]-uy*10);x.stroke();x.beginPath();x.moveTo(B[0],B[1]);x.lineTo(B[0]-ux*20-uy*10,B[1]-uy*20+ux*10);x.lineTo(B[0]-ux*20+uy*10,B[1]-uy*20-ux*10);x.fill();bub((A[0]+B[0])/2,(A[1]+B[1])/2,col,pc);x.restore()}
-function draw(){if(!S)return;drawMiniMap();updateCityOrders();const dp=devicePixelRatio||1,Wd=cv.width,Hd=cv.height,mp=S.pl;x.setTransform(1,0,0,1,0,0);
+function draw(){if(!S)return;formationHits.length=0;drawMiniMap();updateCityOrders();const dp=devicePixelRatio||1,Wd=cv.width,Hd=cv.height,mp=S.pl;x.setTransform(1,0,0,1,0,0);
 const g=x.createRadialGradient(Wd/2,Hd/2,40,Wd/2,Hd/2,Math.max(Wd,Hd)*.7);g.addColorStop(0,"#73d6f3");g.addColorStop(1,"#3aaddd");x.fillStyle=g;x.fillRect(0,0,Wd,Hd);
 x.setTransform(dp*cam.k,0,0,dp*cam.k,dp*cam.tx,dp*cam.ty);x.lineJoin="round";x.lineCap="round";drawWorldLand();if(cam.k<.53 && worldShapes.length){visibleCityMarks=[];visibleCityLabels=[];drawPoliticalNames();return}
 
@@ -117,6 +117,7 @@ let dr=null;cv.addEventListener("pointerdown",e=>{dr={x:e.clientX,y:e.clientY,tx
 addEventListener("pointermove",e=>{if(!dr)return;const dx=e.clientX-dr.x,dy=e.clientY-dr.y;if(Math.abs(dx)+Math.abs(dy)>4)dr.m=1;if(dr.m){cam.tx=dr.tx+dx;cam.ty=dr.ty+dy;boundCamera();tip.style.display="none";redraw()}});
 addEventListener("pointerup",e=>{if(dr&&!dr.m&&e.button===0&&e.target==cv&&S)selectMapPoint(e.clientX,e.clientY);dr=null});
 let zoomFrame=0,desiredZoom=0,zoomAnchor=[0,0];
+function stopZoom(){if(zoomFrame)cancelAnimationFrame(zoomFrame);zoomFrame=0;desiredZoom=cam.k}
 function easeMapZoom(){
   const [px,py]=zoomAnchor,old=cam.k;
   const next=Math.abs(desiredZoom-old)<.009?desiredZoom:old+(desiredZoom-old)*.32;
@@ -124,8 +125,8 @@ function easeMapZoom(){
   zoomFrame=next===desiredZoom?0:requestAnimationFrame(easeMapZoom);
 }
 cv.addEventListener("wheel",e=>{
-  e.preventDefault();zoomAnchor=[e.clientX,e.clientY];
-  desiredZoom=Math.max(worldMinZoom(),Math.min(42,(zoomFrame?desiredZoom:cam.k)*(e.deltaY<0?1.16:.862)));
+  e.preventDefault();if(!e.deltaY)return;zoomAnchor=[e.clientX,e.clientY];
+  desiredZoom=Math.max(worldMinZoom(),Math.min(42,(zoomFrame?desiredZoom:cam.k)*Math.exp(-Math.max(-180,Math.min(180,e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?innerHeight:1)))*.0015)));
   if(matchMedia("(prefers-reduced-motion: reduce)").matches){
     cam.tx=e.clientX-(e.clientX-cam.tx)*desiredZoom/cam.k;cam.ty=e.clientY-(e.clientY-cam.ty)*desiredZoom/cam.k;cam.k=desiredZoom;boundCamera();redraw()
   }else if(!zoomFrame)zoomFrame=requestAnimationFrame(easeMapZoom);
@@ -143,7 +144,17 @@ cv.addEventListener("contextmenu",e=>{e.preventDefault();if(cityAt(e.clientX,e.c
 cv.addEventListener("mousemove",e=>{if(dr&&dr.m||!S)return;const i=hit(e.clientX,e.clientY);const district=cam.k>=DETAIL_ZOOM?districtAt(i,(e.clientX-cam.tx)/cam.k,(e.clientY-cam.ty)/cam.k):null;if(i!==hv||district!==hoveredDistrict){hv=i;hoveredDistrict=district;redraw()}const city=cityAt(e.clientX,e.clientY);if(city!==hoverCity){hoverCity=city;cv.style.cursor=city?"pointer":"grab";redraw()}if(city){tip.textContent=city.name+" · "+C[cityOwner(city)].n+" · Нажмите для приказа";positionMapTip(e);return}if(i<0){tip.style.display="none";return}const p=S.prov[i];tip.innerHTML=`<b>${hoveredDistrict?escapeCityName(hoveredDistrict.name||"Сельский район")+" · ":""}${P[i].n}</b><br>Владелец: ${C[p.o].n}<br>Дивизий: ${S.div[i]}<br>Укрепления: ${p.fort}<br>Инфраструктура: ${p.inf}/5`;positionMapTip(e)});
 function positionMapTip(e){tip.style.display="block";tip.style.left=Math.min(e.clientX+14,innerWidth-200)+"px";tip.style.top=Math.min(e.clientY+14,innerHeight-110)+"px"}
 cv.addEventListener("mouseleave",()=>{hv=-1;hoverCity=null;hoveredDistrict=null;tip.style.display="none";redraw()});
-function fit(){const dp=devicePixelRatio||1;cv.width=innerWidth*dp;cv.height=innerHeight*dp;const k=Math.min(innerWidth/5270,(innerHeight-150)/3900);cam.k=worldMinZoom();cam.tx=innerWidth/2-145*cam.k;cam.ty=innerHeight/2-1540*cam.k;boundCamera();redraw()}
+let viewportSize=null;
+function fit(preserve=false){
+  stopZoom();
+  const width=innerWidth,height=innerHeight,dp=devicePixelRatio||1;
+  const old=viewportSize;viewportSize={width,height};
+  const cx=old?(old.width/2-cam.tx)/cam.k:145,cy=old?(old.height/2-cam.ty)/cam.k:1562;
+  cv.width=Math.round(width*dp);cv.height=Math.round(height*dp);
+  cam.k=preserve&&old?Math.max(worldMinZoom(),cam.k):worldMinZoom();
+  cam.tx=width/2-(preserve?cx:145)*cam.k;cam.ty=height/2-(preserve?cy:1562)*cam.k;
+  boundCamera();redraw();
+}
 function pick(i){if(i<0){S.sel=null;S.pend=null;render();return}const mp=S.pl;if(S.sel!=null&&S.sel!=i&&S.prov[S.sel].o==mp&&S.div[S.sel]>0&&P[S.sel].nb.includes(i)&&(S.prov[i].o==mp||atWar(S.prov[i].o,mp))){if(S.pend==i){act(S.sel,i);return}S.pend=i;render();return}S.sel=i;S.pend=null;S.dipC=S.prov[i].o;if(S.prov[i].o!==mp&&W!=="prd")W=null;render()}
 function act(f,t,n){
   if(cityLayers[t]?.cities.length){
@@ -227,7 +238,13 @@ let h=`<div class="ph"><span class="country-header">${flagBadge(c)}${C[c].n}</sp
 if(me){const sec=(t,i,b)=>`<div class="sec">${i} ${t}</div><div class="slots">${b}</div>`;h+=sec("Правительство и законы",uiIcon("politics"),sl(uiIcon("unit"),"Закон призыва: "+LAWS[S.law]+" (+1 ступень за 40 ПП)","if(S.law<3&&S.pp>=40){S.pp-=40;S.law++;S.stab-=3}render()")+sl(uiIcon("document"),"Фокусы","openW('foc')"))+sec("Исследования и производство",uiIcon("factory"),sl(uiIcon("research"),"Исследования","openW('res')")+sl(uiIcon("factory"),"Производство","openW('prd')")+sl(uiIcon("build"),"Строительство","openW('bld')"))+`<div class="act"><small>${LAWS[S.law]} · дивизий ${own(c).reduce((a,i)=>a+S.div[i],0)}</small></div>`}
 else if(!alive(c))h+='<div class="act">Государство аннексировано.</div>';
 else{h+=`<div class="tabs3"><button class="${S.cpt!="coop"?"on":""}" onclick="S.cpt='occ';render()">Оккупация</button><button class="${S.cpt=="coop"?"on":""}" onclick="S.cpt='coop';render()">Сотрудничество</button><button disabled>Субъекты</button></div><div class="act">${w?'<p class="w">Вы находитесь в состоянии войны</p>':""}`;
-if(S.cpt!="coop"){if(!w){if(nb&&j==null)h+=`<button ${S.pp<25?"disabled":""} onclick="S.pp-=25;S.just['${c}']=2;S.T+=3;render()">Оправдать цель войны (25 ПП)</button>`;else if(!nb)h+="<small>Нет общей границы</small>";if(j===0)h+=`<button class="go" onclick="dwar('${c}')">Объявить войну</button>`;else if(j>0)h+=`<small>Оправдание: ещё ${j} мес.</small>`}}
+if(S.cpt!="coop"){
+  if(!w)h+=ally(c,S.pl)?'<small>Союзное государство</small>':'<button class="go" onclick="dwar(\''+c+'\')">Объявить войну</button>';
+  else{
+    const held=[...S.cityGarrisons].filter(([id,g])=>g.owner===S.pl&&S.prov[detailedCities[id].province].o===c);
+    h+='<p>Городов под вашим контролем: '+held.length+'</p>'+held.map(([id])=>'<button onclick="inspectGarrison('+id+')">'+escapeCityName(detailedCities[id].name)+'</button>').join("");
+  }
+}
 else if(!w)h+=`<button ${S.pp<25?"disabled":""} onclick="inv('${c}')">Альянс (25 ПП)</button><button ${S.pp<20||pk?"disabled":""} onclick="S.pp-=20;S.pact[S.pl+'${c}']=24;log('Пакт о ненападении с ${C[c].n}');render()">Пакт о ненападении (20 ПП)</button><button ${S.pp<10?"disabled":""} onclick="S.pp-=10;S.tr.st++;log('Торговля сталью с ${C[c].n}');render()">Торговля</button>`;h+="</div>"}return h}
 let previousMeters=new Map(),meterCampaign=null;
 function render(){if(!S)return;
@@ -262,7 +279,7 @@ function setM(x,v){const o=Object.keys(S.mix).filter(k=>k!=x),rest=100-v,s=o.red
 function pDip(){let h=`<h3>Дипломатия</h3><small>Войны: ${en(S.pl).map(x=>C[x].n).join(", ")||"нет"}</small>`;Object.keys(C).filter(c=>c!=S.pl).forEach(c=>{if(!alive(c))return;const w=atWar(c,S.pl),n=own(S.pl).some(i=>P[i].nb.some(j=>S.prov[j].o==c)),j=S.just[c],pk=S.pact[S.pl+c]>0;
 h+=`<div class="it"><b>${C[c].n}</b> ${w?uiIcon("battle"):ally(c,S.pl)?uiIcon("pact"):pk?uiIcon("document"):""}<small>Войск ${own(c).reduce((a,i)=>a+S.div[i],0)} · блок ${bloc(c)||"—"}</small>`;if(!w){if(n&&j==null)h+=`<button ${S.pp<25?"disabled":""} onclick="S.pp-=25;S.just['${c}']=2;S.T+=3;render()">Оправдать цель (25 ПП)</button>`;if(j===0)h+=`<button onclick="dwar('${c}')">Объявить войну</button>`;else if(j>0)h+=`<small>Оправдание: ещё ${j} мес.</small>`;
 h+=`<button ${S.pp<20||pk?"disabled":""} onclick="S.pp-=20;S.pact[S.pl+'${c}']=24;log('Пакт о ненападении с ${C[c].n}');render()">Пакт (20 ПП)</button><button ${S.pp<25?"disabled":""} onclick="inv('${c}')">В альянс (25 ПП)</button><button ${S.pp<10?"disabled":""} onclick="S.pp-=10;S.tr.st++;log('Торговля сталью с ${C[c].n}');render()">Торговля</button>`}h+="</div>"});return h}
-function dwar(c){if(S.pact[S.pl+c]>0){S.stab-=10;delete S.pact[S.pl+c]}declare(S.pl,c);S.ws=Math.min(100,S.ws+8);delete S.just[c];render()}
+function dwar(c){if(!C[c]||c===S.pl||!alive(c)||atWar(c,S.pl)||ally(c,S.pl))return;if(S.pact[S.pl+c]>0){S.stab-=10;delete S.pact[S.pl+c]}declare(S.pl,c);enemyCityMove(c);S.ws=Math.min(100,S.ws+8);delete S.just[c];render()}
 function inv(c){S.pp-=25;if(R()<.3+S.T/150+(bloc(c)?0:.25)){const b=bloc(c)||bloc(S.pl)||"P";S.bloc[c]=b;S.bloc[S.pl]=b;log(C[c].n+" вступает в альянс")}else log(C[c].n+" отклоняет альянс");render()}
 
 $("#flag").addEventListener("click", () => {
@@ -585,7 +602,7 @@ if(!$("#history-status")){
 const menuButton = $("#campaign-open");
 const resumeButton = $("#campaign-resume");
 let campaignCountry = "GER";
-function showCampaign(show) {
+function showCampaign(show) {stopZoom();
   lastCityTick=null;
   campaignMenu.hidden = !show;
   redraw();
@@ -687,10 +704,15 @@ function drawUnitCounter(province, index) {
   const point=reserveTowns[index]?.point||province.c;
   if(worldVisible(...point,60))drawFormationCounter(point,count,country,index,globalCampaign?18:0);
 }
-function drawFormationCounter([a,b],count,country,index,offset,guns=0){
+function drawFormationCounter([a,b],count,country,index,offset,guns=0,city=reserveTowns[index]){
   const friendly=country===S.pl;
   const scale = Math.max(.65, cam.k);
   x.save();
+  if(city){
+    const sx=a*cam.k+cam.tx,sy=b*cam.k+cam.ty;
+    formationHits.push({city,l:sx-24,r:sx+24,t:sy+offset-10,b:sy+offset+10});
+    if(cam.k>4)formationHits.push({city,l:sx-25,r:sx+25,t:sy-43,b:sy-5});
+  }
   x.translate(a,b+offset/scale);
   x.scale(1/scale,1/scale);
   x.fillStyle = friendly ? "#244535" : atWar(country,S.pl)?"#632c32":ally(country,S.pl)?"#28465d":"#343839";
@@ -922,7 +944,7 @@ function drawDetailedCities() {
         x.fillStyle="#90957a";x.fillRect(-4,-8,8,4);x.fillRect(3,-7,10,2);x.restore();
       }
       x.restore();
-      drawFormationCounter(city.point,strength,owner,city.province,16,S.cityGarrisons.get(city.id)?.guns);
+      drawFormationCounter(city.point,strength,owner,city.province,16,S.cityGarrisons.get(city.id)?.guns,city);
     }
     if(S.cityGarrisons.get(city.id)?.guns)drawFieldGun(a,b-6/scale,scale);
     x.fillStyle="#f1e8d8";
@@ -1194,17 +1216,52 @@ function citySources(target){
   }
   return result;
 }
+const formationHits=[];
+let directOrigin=null,directHint="";
+function allowedStep(origin,target){
+  return cityLinks[origin.id]?.has(target.id)&&!S.cityOrders.has(target.id)&&(cityOwner(target)===S.pl||atWar(S.pl,cityOwner(target)));
+}
+function directClick(sx,sy,target){
+
+  const marker=formationHits.findLast(h=>sx>=h.l&&sx<=h.r&&sy>=h.t&&sy<=h.b)?.city;
+  if(planTool&&!marker)return false;
+  const dest=marker||target;
+  if(directOrigin&&dest&&dest!==directOrigin){
+    if(marker&&cityOwner(marker)===S.pl&&!cityLinks[directOrigin.id]?.has(marker.id)){directOrigin=null;directHint="";return directClick(sx,sy,target)}
+    if(!allowedStep(directOrigin,dest)){directHint="Приказ возможен только в свободный соседний город своей страны или противника.";render();return true}
+    const key=cityUnits(directOrigin)>0?"c"+directOrigin.id:"p"+directOrigin.province;
+    const src=citySources(dest).find(s=>s.key===key);
+    if(src){
+      const guns=src.city?(S.cityGarrisons.get(src.city.id)?.guns||0):0;
+      directOrigin=null;directHint="";S.cityTarget=dest;
+      dispatchToCity(dest,key,src.units,false,guns?{path:[],carriedGuns:guns,commander:"Гарнизон"}:null);
+    }else{directOrigin=null;directHint="Отряд уже покинул город.";render()}
+    return true;
+  }
+  const troops=marker||(!planTool&&target&&armySources(target).length?target:null);
+  if(troops&&cityOwner(troops)===S.pl&&!S.cityOrders.has(troops.id)){
+    planTool="";S.armyDraft=null;
+    directOrigin=directOrigin===troops?null:troops;
+    directHint=directOrigin?troops.name+" · выберите соседний город. Esc — отмена":"";
+    S.cityTarget=troops;S.dipC=null;W=null;render();return true;
+  }
+  if(directOrigin){directOrigin=null;directHint="";render();return true}
+  return false;
+}
+addEventListener("keydown",e=>{if(e.key==="Escape"&&directOrigin){directOrigin=null;directHint="";render()}});
 function selectMapPoint(screenX,screenY) {$("#foreign-country").hidden=true;
   x.textAlign="center";x.fillStyle="#a3c1c9";x.font="italic "+14/cam.k+"px Georgia";
   for(const [label,lon,lat] of [["Тихий океан",-145,-4],["Атлантический океан",-35,20],["Индийский океан",77,-26],["Северный Ледовитый океан",63,79],["Южный океан",-15,-60]])x.fillText(label,...PX(lon,lat));
   if(!globalCampaign&&cam.k<.53){focusWorldCountry(screenX,screenY);return}
   const city=cityAt(screenX,screenY);
+  if(directClick(screenX,screenY,city))return;
   if(city&&applyPlanClick(city))return;
   if(!city&&!globalCampaign&&hit(screenX,screenY)<0&&focusWorldCountry(screenX,screenY))return;
   S.cityTarget=city;
   if(city){
     W=null;
-    S.dipC=null;
+    S.dipC=cityOwner(city)!==S.pl&&!atWar(cityOwner(city),S.pl)?cityOwner(city):null;
+    if(S.dipC){S.cpt="occ";S.cityTarget=null}
     S.pend=null;
     tip.style.display="none";
     render();
@@ -1363,17 +1420,41 @@ function returnCityUnits(source,units) {
   if(fallback!=null)S.div[fallback]+=units;
 }
 
+const dispatchStories={
+  arrival:["Первый эшелон","Гарнизон прибыл. На вокзале ждут первые распоряжения штаба.","Выдать резервное снаряжение · +12 винтовок","Дать людям отдых · +8 организации"],
+  capture:["После боя","В городе восстановлена связь. Местный совет просит определить первоочередную задачу.","Поддержать жителей · +2 стабильности","Открыть штаб связи · +4 политвласти"],
+  port:["Огни гавани","Порт переходит под ваше управление. На рейде ждут очереди транспортные суда.","Принять военный груз · +4 орудия","Принять гражданский груз · +2 стабильности"]
+};
+function unlockDispatch(type,city){
+  S.dispatches||={};if(S.dispatches[type])return;
+  S.dispatches[type]={name:city.name,province:city.province,y:S.y,m:S.m,choice:null};
+  log("Новая сводка: "+dispatchStories[type][0],1);
+}
+function resolveDispatch(type,choice){
+  const d=S.dispatches?.[type];if(!d||d.choice!=null||![0,1].includes(choice))return;
+  d.choice=choice;
+  if(type==="arrival"){if(choice===0)S.eq.r+=12;else S.org[d.province]=Math.min(100,S.org[d.province]+8)}
+  if(type==="capture"){if(choice===0)S.stab=Math.min(100,S.stab+2);else S.pp+=4}
+  if(type==="port"){if(choice===0)S.eq.a+=4;else S.stab=Math.min(100,S.stab+2)}
+  render();
+}
+WT.dispatches=["Штабные сводки",()=>Object.entries(S.dispatches||{}).map(([key,d])=>{
+  const [title,body,...choices]=dispatchStories[key];
+  return '<section><h3>'+title+'</h3><small>'+escapeCityName(d.name)+' · '+d.m+'/'+d.y+'</small><p>'+body+'</p>'+choices.map((choice,i)=>d.choice==null?'<button onclick="resolveDispatch(\''+key+'\','+i+')">'+choice+'</button>':d.choice===i?'<b>'+choice+'</b>':'').join("")+'</section>';
+}).join("")||"<p>Отправьте отряд в соседний город, чтобы получить первую сводку.</p>"];
 function finishCityOrder(order) {
   const {city,source,units,combat}=order;
   const owner=cityOwner(city);
   if(owner===S.pl){
     S.cityGarrisons.set(city.id,{owner:S.pl,guns:(S.cityGarrisons.get(city.id)?.guns||0)+(order.guns||0),units:cityUnits(city)+units});
+    if(source.point[0]!==city.point[0]||source.point[1]!==city.point[1])unlockDispatch("arrival",city);
     log("Дивизии прибыли: "+escapeCityName(city.name));
   }else if(!combat||owner!==order.owner||!atWar(S.pl,owner)){
     S.eq.a+=order.guns||0;returnCityUnits(source,units);
     log("Приказ отменён: "+escapeCityName(city.name));
   }else{
-    const defenders=cityUnits(city);
+    const ownsReserve=reserveTowns[city.province]===city&&S.prov[city.province].o===owner;
+    const defenders=cityUnits(city)+(ownsReserve?S.div[city.province]:0);
     const province=S.prov[city.province];
     const base=S.prov[source.province],stance=S.stances?.[source.province%4]||"balanced";
     const attack=units*atkS(S.pl,source.province)*(order.guns?1.3:1)*(.65+.35*(base.readiness??100)/100)*(stance==="bold"?1.12:stance==="guard"?.94:1);
@@ -1382,7 +1463,9 @@ function finishCityOrder(order) {
     const surrounded=nearby.length>=2&&nearby.every(id=>cityOwner(detailedCities[id])===S.pl);
     const defense=(surrounded?.75:1)*(defenders*.7+.65)*(24+province.fort*4)*(S.cityGarrisons.get(city.id)?.guns?1.3:1);
     if(attack>=defense){
+      if(ownsReserve)S.div[city.province]=0;
       S.cityGarrisons.set(city.id,{owner:S.pl,guns:order.guns||0,units:Math.max(1,units-Math.floor(defenders/2))});
+      unlockDispatch("capture",city);if(city.port)unlockDispatch("port",city);
       log("Город захвачен: "+escapeCityName(city.name),1);
     }else{
       returnCityUnits(source,Math.max(0,units-1));
@@ -1391,6 +1474,42 @@ function finishCityOrder(order) {
   }
 }
 
+function enemyCityMove(country){
+  if(!atWar(country,S.pl)||[...S.cityOrders.values()].some(o=>o.actor===country))return;
+  // Search from all available stacks; the first reachable opposing city gives one legal step.
+  const queue=[],seen=new Set();
+  function seed(city,n,reserve){
+    if(!city||n<1||cityOwner(city)!==country||S.cityOrders.has(city.id)||seen.has(city.id))return;
+    seen.add(city.id);queue.push({city,origin:city,first:null,n,reserve});
+  }
+  for(const [id,g] of S.cityGarrisons)if(g.owner===country)seed(detailedCities[id],g.units,false);
+  for(const i of own(country))seed(reserveTowns[i],S.div[i],true);
+  for(let i=0;i<queue.length;i++){
+    const node=queue[i];
+    for(const id of cityLinks[node.city.id]||[]){
+      if(seen.has(id)||S.cityOrders.has(id))continue;
+      const city=detailedCities[id],owner=cityOwner(city);
+      if(owner!==country&&owner!==S.pl)continue;
+      seen.add(id);const first=node.first||city;
+      if(owner===country){queue.push({...node,city,first});continue}
+      const origin=node.origin,n=Math.min(node.n,3),combat=cityOwner(first)===S.pl;
+      if(node.reserve)S.div[origin.province]-=n;else S.cityGarrisons.get(origin.id).units-=n;
+      S.cityOrders.set(first.id,{actor:country,city:first,owner:cityOwner(first),source:{city:origin,province:origin.province,point:origin.point},units:n,combat,elapsed:0,travel:CITY_MOVE_TIME,duration:CITY_MOVE_TIME+(combat?CITY_BATTLE_TIME:0)});
+      redraw();return;
+    }
+  }
+}
+function finishEnemyMove(order){
+  const {city,actor,units,source}=order,owner=cityOwner(city);
+  const defenders=cityUnits(city)+(reserveTowns[city.province]===city&&S.prov[city.province].o===owner?S.div[city.province]:0);
+  if(owner===actor){const g=S.cityGarrisons.get(city.id);S.cityGarrisons.set(city.id,{owner:actor,units:cityUnits(city)+units,guns:g?.guns||0});enemyCityMove(actor);return}
+  if(owner===S.pl&&atWar(actor,S.pl)&&units>defenders){
+    if(reserveTowns[city.province]===city&&S.prov[city.province].o===owner)S.div[city.province]=0;
+    S.cityGarrisons.set(city.id,{owner:actor,units:Math.max(1,units-defenders),guns:0});log("Город занят противником: "+escapeCityName(city.name),1);
+  }else if(cityOwner(source.city)===actor){
+    const g=S.cityGarrisons.get(source.city.id);S.cityGarrisons.set(source.city.id,{owner:actor,units:cityUnits(source.city)+Math.max(0,units-1),guns:g?.guns||0});
+  }
+}
 function updateCityOrders() {
   if(!S.cityOrders.size||!campaignMenu.hidden||S.over){lastCityTick=null;return}
   const now=performance.now();
@@ -1401,6 +1520,7 @@ function updateCityOrders() {
     order.elapsed+=delta;
     if(order.elapsed<order.duration)continue;
     S.cityOrders.delete(id);
+    if(order.actor){finishEnemyMove(order);completed=true;continue}
     finishCityOrder(order);
     if(order.operation&&cityOwner(order.city)===S.pl){
       const [next,...path]=order.operation.path;
@@ -1422,7 +1542,7 @@ function drawOrderOverlay(order){
   const {city,source,combat}=order;
   const [a,b]=source.point,[c,d]=city.point;
   const length=Math.hypot(c-a,d-b);
-  const color=combat?"#f08089":"#93dcb3";
+  const color=combat||order.actor?"#f08089":"#93dcb3";
   x.save();
   if(combat&&cityRegions[city.id]&&cityLayers[city.province]){
     x.save();x.clip(cityLayers[city.province].path,"evenodd");
@@ -1440,6 +1560,11 @@ function drawOrderOverlay(order){
   x.restore();
 }
 function drawCityOrders() {
+  if(directOrigin){
+    for(const id of cityLinks[directOrigin.id]||[]){const dest=detailedCities[id];if(!allowedStep(directOrigin,dest))continue;
+      x.save();x.clip(cityLayers[dest.province].path,"evenodd");x.fillStyle=cityOwner(dest)===S.pl?"rgba(102,194,151,.28)":"rgba(214,103,117,.35)";x.fill(cityRegions[id]);x.restore();
+    }
+  }
   const plan=S.armyDraft;
   if(plan&&plan.path.length>1){
     x.save();x.beginPath();for(const [i,id] of plan.path.entries()){const point=detailedCities[id].point;if(i)x.lineTo(...point);else x.moveTo(...point)}
@@ -1531,7 +1656,7 @@ function commandCards(c,total){
 }
 WT.garrisons=["Гарнизоны",()=>detailedCities.filter(city=>cityOwner(city)===S.pl).map(city=>
   '<button class="bz" onclick="inspectGarrison('+city.id+')">'+escapeCityName(city.name)+'</button>').join(" ")];
-function inspectGarrison(id){
+function inspectGarrison(id){stopZoom();
   const city=detailedCities[id];if(!city)return;
   cam.k=Math.max(2.4,cam.k);cam.tx=innerWidth/2-city.point[0]*cam.k;cam.ty=innerHeight/2-city.point[1]*cam.k;boundCamera();
   W=null;S.dipC=null;S.sel=city.province;S.cityTarget=city;render();
@@ -1863,7 +1988,7 @@ function restoreState(saved){
     if(order.source.city)order.source.city=detailedCities[order.source.city.id];
   }
   S=state;mode=saved.mode||"pol";W=Object.hasOwn(WT,saved.window)?saved.window:null;
-  if(saved.camera&&Number.isFinite(saved.camera.k)){cam={...saved.camera};boundCamera()}
+  if(saved.camera&&[saved.camera.k,saved.camera.tx,saved.camera.ty].every(Number.isFinite)&&saved.camera.k>0){cam={...saved.camera,k:Math.min(42,Math.max(worldMinZoom(),saved.camera.k))};boundCamera()}
   lastCityTick=null;render();
   if(S.pendingEvent!=null)showEvt(EVT[S.pendingEvent],true);
 }
@@ -1981,11 +2106,11 @@ function tacticalGroups(){
 function openArmy(slot){
   armySlot=slot;armyDrawer=true;W=null;S.dipC=null;render();
 }
-function startMapTool(tool){
+function startMapTool(tool){directOrigin=null;directHint="";
   if(tool==="clear"){
     S.armyDraft=null;S.frontCities=[];planTool="";
     for(const [id,order] of [...S.cityOrders]){
-      if(order.source.province%4!==armySlot)continue;
+      if(order.actor||order.source.province%4!==armySlot)continue;
       if(order.combat&&order.elapsed>=(order.travel||0)){if(order.operation)order.operation.path=[];continue}
       S.cityOrders.delete(id);returnCityUnits(order.source,order.units);S.eq.a+=order.guns||0;
     }
@@ -2014,7 +2139,7 @@ function applyPlanClick(city){
 }
 function nationalStaffChief(){
   const side=C[S.pl],legacy={GER:"de",FRA:"fr",ITA:"it",UK:"gb",FIN:"fi",SWE:"se",NOR:"no",ESP:"es"};
-  const iso=modernFlagCodes[side.n]||legacy[S.pl]||({Ukraine:"ua","United States of America":"us","Russian Federation":"ru","Federated Republic of Germany":"de","French Fifth Republic":"fr","Kingdom of Great Britain":"gb","Republic of Italy":"it","Kingdom of Sweden":"se","Republic of Finland":"fi","Kingdom of Norway":"no","Kingdom of Spain":"es",Canada:"ca"})[side.raw];
+  const iso=modernFlagCodes[side.n]||legacy[S.pl]||Object.keys(staffCatalogue).find(code=>polityIds[side.raw]&&leaderCatalogue?.iso[code]===polityIds[side.raw])||({Ukraine:"ua","United States of America":"us","Russian Federation":"ru","Federated Republic of Germany":"de","French Fifth Republic":"fr","Kingdom of Great Britain":"gb","Republic of Italy":"it","Kingdom of Sweden":"se","Republic of Finland":"fi","Kingdom of Norway":"no","Kingdom of Spain":"es",Canada:"ca"})[side.raw];
   const date=String(S.y).padStart(4,"0")+"-"+String(S.m).padStart(2,"0")+"-01";
   const latest=staffCatalogue[iso]?.find(chief=>chief.from<=date);
   return latest&&(!latest.to||date<latest.to)?latest:null;
@@ -2022,6 +2147,8 @@ function nationalStaffChief(){
 function armyName(slot){return officerNames(C[S.pl].roster||S.pl)?.[slot]||"Штаб · "+(slot+1)+"-я армия"}
 function armyPortrait(slot){
   const i=["GER","SOV","FRA","UK","ITA","POL"].indexOf(C[S.pl].roster||S.pl);
+  const chief=nationalStaffChief();
+  if(i<0&&chief?.photo)return '<img src="'+chief.photo+'" alt="'+escapeCityName(chief.name)+'" title="Высшее военное командование · '+escapeCityName(chief.name)+'" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span hidden class="staff-bust"></span>';
   if(i>=0)return '<img src="/officers/'+(i*4+slot)+'.jpg" alt="">';
   return '<span class="staff-bust" aria-label="Штабной офицер"></span>';
 }
@@ -2044,6 +2171,7 @@ function renderTacticalHud(){
   const orders=[...S.cityOrders.values()];
   theaterButton.innerHTML='<b>'+escapeCityName(C[S.pl].n)+' · театр</b><small>'+active.length+' арм. · '+groups.reduce((v,g)=>v+total(g),0)+' див. · боёв '+orders.filter(o=>o.combat).length+'</small>';
   $("#front-list").innerHTML=active.map(i=>'<button style="--army:'+tacticalColors[i]+'" onclick="openArmy('+i+')"><span>'+(i+1)+'-я армия</span><b>'+total(groups[i])+' див.</b></button>').join("");
+  $("#front-list").insertAdjacentHTML("beforeend",'<button onclick="openW(\'dispatches\')">Штабные сводки <b>'+Object.values(S.dispatches||{}).filter(d=>d.choice==null).length+'</b></button>');
   theaterButton.onclick=()=>{armyDrawer=!armyDrawer;S.dipC=null;W=null;render()};
   drawer.hidden=!armyDrawer||!!W||!!S.dipC;
   if(!drawer.hidden){
@@ -2058,13 +2186,13 @@ function renderTacticalHud(){
     }}drawer.append(list);
   }
   if(!S.armyDraft&&(planTool==="route"||planTool==="retreat"))planTool="";
-  if($("#plan-hint"))$("#plan-hint").textContent=({front:"Отметьте свои районы на карте",route:"Укажите маршрут по соседним городам",retreat:"Укажите путь отхода по своим городам",garrison:"Выберите свой город для размещения"})[planTool]||"";
+  if($("#plan-hint"))$("#plan-hint").textContent=directHint||({front:"Отметьте свои районы на карте",route:"Укажите маршрут по соседним городам",retreat:"Укажите путь отхода по своим городам",garrison:"Выберите свой город для размещения"})[planTool]||"";
 }
 
 fit();
 init("GER");
 loadCampaign();
-addEventListener("resize", fit);
+addEventListener("resize",()=>fit(true));
 
 
 

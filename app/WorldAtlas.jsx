@@ -10,10 +10,11 @@ export default function WorldAtlas(){
     const atlas=window.campaignAtlas;
     setCountries(atlas?.data||[]);setError(!atlas);
   }
+  function bounded(x,y,width){return [Math.max(0,Math.min(360-width,x)),Math.max(0,Math.min(180-width/2,y)),width]}
   function zoom(factor){
-    setView(([a,b,w])=>{const size=Math.min(360,Math.max(12,w*factor));return [a+(w-size)/2,b+(w-size)/4,size]});
+    setView(([a,b,w])=>{const size=Math.min(360,Math.max(12,w*factor));return bounded(a+(w-size)/2,b+(w-size)/4,size)});
   }
   return <><button id="atlas-open" onClick={show}>Карта мира</button>{open&&<section className="atlas"><header><strong>{name||'Мировой атлас'}</strong><small>Границы на начало кампании · {open && window.campaignAtlas?.year}</small>{name&&<button onClick={()=>{window.dispatchEvent(new CustomEvent("world-country-choice",{detail:name}));setOpen(false)}}>Играть за страну</button>}<button onClick={()=>zoom(.7)}>+</button><button onClick={()=>zoom(1.4)}>−</button><button onClick={()=>setOpen(false)}>К кампании</button></header>{error&&<button onClick={show}>Загрузить карту снова</button>}
-    <svg viewBox={[view[0],view[1],view[2],view[2]/2].join(' ')} onWheel={e=>zoom(e.deltaY<0?.8:1.25)} onPointerDown={e=>{drag.current=[e.clientX,e.clientY,...view];if(e.target.dataset.country)select(e.target.dataset.country);e.currentTarget.setPointerCapture(e.pointerId)}} onPointerUp={()=>drag.current=null} onPointerCancel={()=>drag.current=null} onPointerMove={e=>{if(!drag.current)return;const [x,y,a,b,w]=drag.current;const scale=e.currentTarget.getScreenCTM().a;setView([a-(e.clientX-x)/scale,b-(e.clientY-y)/scale,w])}}>
+    <svg viewBox={[view[0],view[1],view[2],view[2]/2].join(' ')} onWheel={e=>zoom(e.deltaY<0?.8:1.25)} onPointerDown={e=>{drag.current=[e.clientX,e.clientY,...view];if(e.target.dataset.country)select(e.target.dataset.country);e.currentTarget.setPointerCapture(e.pointerId)}} onPointerUp={()=>drag.current=null} onPointerCancel={()=>drag.current=null} onPointerMove={e=>{if(!drag.current)return;const [x,y,a,b,w]=drag.current;const scale=e.currentTarget.getScreenCTM().a;setView(bounded(a-(e.clientX-x)/scale,b-(e.clientY-y)/scale,w))}}>
     {countries.map(([country,path],i)=><path key={i} data-country={country} d={path} fill={name===country?'#c5af78':['#718979','#879382','#819086','#93947a'][i%4]}><title>{country}</title></path>)}</svg></section>}</>;
 }

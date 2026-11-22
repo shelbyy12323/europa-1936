@@ -62,7 +62,7 @@ function EuropeGame() {
         <div id="md" hidden><div /></div>
       </div>
       <CampaignMenu />
-      <Script src={`/europe-1936.js?v=${mapVersion}`} strategy="afterInteractive" />
+      <Script src={`${process.env.NEXT_PUBLIC_GAME_BASE || ''}/europe-1936.js?v=${mapVersion}`} strategy="afterInteractive" />
     </main>
   );
 }
@@ -70,5 +70,6 @@ function EuropeGame() {
 export default function Page() {
   return <EuropeGame />;
 }
+
 
 
